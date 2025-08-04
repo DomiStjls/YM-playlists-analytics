@@ -5,10 +5,19 @@ from dotenv import load_dotenv
 
 
 # to get the token: https://yandex-music.readthedocs.io/en/main/token.html
-def take_token_from_env():
+def get_token_from_env():
     load_dotenv()
     token = os.getenv("TOKEN", None)
     return token
+
+
+def get_user_id_from_token(token=None):
+    if not token:
+        token = get_token_from_env()
+    if not token:
+        return None
+    info = Client(token=token).init().me
+    return {"id": info.account.uid, "full_name": info.account.full_name}
 
 
 def write_tracks_to_file(tracks, name_file="playlist.txt"):
@@ -29,7 +38,7 @@ def write_tracks_to_file(tracks, name_file="playlist.txt"):
 
 def get_favorite_tracks(token=None, user_id=None):
     if not token:
-        token = take_token_from_env()
+        token = get_token_from_env()
     if not token:
         return None
     client = Client(token=token).init()
@@ -54,7 +63,7 @@ def get_favorite_tracks(token=None, user_id=None):
 
 def get_user_playlists(token=None, user_id=None):
     if not token:
-        token = take_token_from_env()
+        token = get_token_from_env()
     if not token:
         return None
     client = Client(token=token).init()
@@ -65,6 +74,7 @@ def get_user_playlists(token=None, user_id=None):
         playlists_list.append(
             {
                 "playlist_uid": playlist.uid,
+                "kind": playlist.kind,
                 "track_count": playlist.track_count,
                 "playlist_title": playlist.title,
                 "playlist_duration": playlist.duration_ms,
@@ -75,7 +85,7 @@ def get_user_playlists(token=None, user_id=None):
 
 def get_user_like_playlists(token=None, user_id=None):
     if not token:
-        token = take_token_from_env()
+        token = get_token_from_env()
     if not token:
         return None
     client = Client(token=token).init()
@@ -96,7 +106,7 @@ def get_user_like_playlists(token=None, user_id=None):
 
 def get_user_like_albums(token=None, user_id=None):
     if not token:
-        token = take_token_from_env()
+        token = get_token_from_env()
     if not token:
         return None
     client = Client(token=token).init()
@@ -119,7 +129,7 @@ def get_user_like_albums(token=None, user_id=None):
 
 def get_users_likes_artists(token=None, user_id=None):
     if not token:
-        token = take_token_from_env()
+        token = get_token_from_env()
     if not token:
         return None
     client = Client(token=token).init()
