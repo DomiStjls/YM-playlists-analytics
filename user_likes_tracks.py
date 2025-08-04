@@ -1,0 +1,141 @@
+# getting the user's favorite tracks
+from yandex_music import Client
+import os
+from dotenv import load_dotenv
+
+
+# to get the token: https://yandex-music.readthedocs.io/en/main/token.html
+def take_token_from_env():
+    load_dotenv()
+    token = os.getenv("TOKEN", None)
+    return token
+
+
+def write_tracks_to_file(tracks, name_file="playlist.txt"):
+    text = ""
+    for track in tracks:
+        artists = ""
+        if track.get("artists"):  # track.artists:
+            artists = " - " + ", ".join(
+                artist.get("name") for artist in track["artists"]
+            )
+        text += track.get("title") + artists + "\n"
+    if not os.path.isdir("data"):
+        os.mkdir("data")
+    path = os.path.join("data", name_file)
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(text)
+
+
+def get_favorite_tracks(token=None, user_id=None):
+    if not token:
+        token = take_token_from_env()
+    if not token:
+        return None
+    client = Client(token=token).init()
+    playlist = client.users_likes_tracks(user_id=user_id)
+    tracks = []
+    for track in playlist.fetch_tracks():
+        tracks.append(
+            {
+                "title": track.title,
+                "id": track.id,
+                "duration": track.duration_ms,
+                "artists": [
+                    {"name": artist.name, "id": artist.id} for artist in track.artists
+                ],
+                "albums": [
+                    {"title": album.title, "id": album.id} for album in track.albums
+                ],
+            }
+        )
+    return tracks
+
+
+def get_user_playlists(token=None, user_id=None):
+    if not token:
+        token = take_token_from_env()
+    if not token:
+        return None
+    client = Client(token=token).init()
+    playlists = client.users_playlists_list(user_id=user_id)
+
+    playlists_list = []
+    for playlist in playlists:
+        playlists_list.append(
+            {
+                "playlist_uid": playlist.uid,
+                "track_count": playlist.track_count,
+                "playlist_title": playlist.title,
+                "playlist_duration": playlist.duration_ms,
+            }
+        )
+    return playlists_list
+
+
+def get_user_like_playlists(token=None, user_id=None):
+    if not token:
+        token = take_token_from_env()
+    if not token:
+        return None
+    client = Client(token=token).init()
+    playlists = client.users_likes_playlists(user_id=user_id)
+    playlists_list = []
+    for playlist in playlists:
+        playlists_list.append(
+            {
+                "owner_uid": playlist.playlist.owner.uid,
+                "owner_name": playlist.playlist.owner.name,
+                "playlist_uid": playlist.playlist.uid,
+                "track_count": playlist.playlist.track_count,
+                "playlist_title": playlist.playlist.title,
+            }
+        )
+    return playlists_list
+
+
+def get_user_like_albums(token=None, user_id=None):
+    if not token:
+        token = take_token_from_env()
+    if not token:
+        return None
+    client = Client(token=token).init()
+    if not user_id:
+        albums = client.users_likes_albums()
+    else:
+        albums = client.users_likes_albums(user_id=user_id)
+
+    albums_list = []
+    for album in albums:
+        albums_list.append(
+            {
+                "album_id": album.album.id,
+                "track_count": album.album.track_count,
+                "playlist_title": album.album.title,
+            }
+        )
+    return albums_list
+
+
+def get_users_likes_artists(token=None, user_id=None):
+    if not token:
+        token = take_token_from_env()
+    if not token:
+        return None
+    client = Client(token=token).init()
+    if not user_id:
+        artists = client.users_likes_artists()
+    else:
+        artists = client.users_likes_artists(user_id=user_id)
+
+    artists_list = []
+    for artist in artists:
+        artists_list.append(
+            {
+                "artist_id": artist.artist.id,
+                "artist_name": artist.artist.name,
+                "artist_genres": artist.artist.genres,
+                "track_count": artist.artist.counts.tracks,
+            }
+        )
+    return artists_list
