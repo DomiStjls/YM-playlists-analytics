@@ -6,17 +6,20 @@ import sys
 from tabulate import tabulate
 from collections import Counter
 from utils import (
-    get_favorite_tracks,
     get_user_id_from_token,
     get_token_from_env,
+    write_data_to_txt,
+    write_data_to_csv,
+    get_favorite_tracks,
     get_user_playlists,
-    write_tracks_to_file,
     get_user_like_playlists,
     get_users_likes_artists,
     get_user_like_albums,
 )
 from colorama import just_fix_windows_console
+
 just_fix_windows_console()
+
 
 class bcolors:
     HEADER = "\033[95m"
@@ -66,7 +69,9 @@ def get_stats(user_id=None):
             )
         print()
 
-        print(f"{bcolors.OKCYAN}Понравившиеся плейлисты:{bcolors.ENDC} {len(liked_playlists)}")
+        print(
+            f"{bcolors.OKCYAN}Понравившиеся плейлисты:{bcolors.ENDC} {len(liked_playlists)}"
+        )
         if liked_playlists:
             liked_table = [
                 [
@@ -91,7 +96,9 @@ def get_stats(user_id=None):
             )
         print()
 
-        print(f"{bcolors.OKCYAN}Собственные плейлисты:{bcolors.ENDC} {len(own_playlists)}")
+        print(
+            f"{bcolors.OKCYAN}Собственные плейлисты:{bcolors.ENDC} {len(own_playlists)}"
+        )
         if own_playlists:
             own_table = [
                 [p["kind"], p["playlist_title"], p["track_count"]]
@@ -106,7 +113,9 @@ def get_stats(user_id=None):
             )
         print()
 
-        print(f"{bcolors.OKCYAN}Понравившиеся исполнители:{bcolors.ENDC} {len(artists)}")
+        print(
+            f"{bcolors.OKCYAN}Понравившиеся исполнители:{bcolors.ENDC} {len(artists)}"
+        )
         if artists:
             artist_table = [
                 [a["artist_id"], a["artist_name"], ", ".join(a["artist_genres"])]
@@ -129,10 +138,40 @@ def get_stats(user_id=None):
             f"{bcolors.OKCYAN}Самые часто встречающиеся жанры среди любимых авторов:{bcolors.ENDC} {', '.join([genre[0] for genre in most_common_genres])}"
         )
     except UnicodeEncodeError:
+        print()
         print(
-            bcolors.WARNING +"UnicodeEncodeError. В названии плейлиста или чего-нибудь еще есть некорректные символы, которые не отображаются в данной консоли. Смените кодировку или консоль." + bcolors.ENDC)
+            bcolors.WARNING
+            + "UnicodeEncodeError. В названии плейлиста или чего-нибудь еще есть некорректные символы, которые не отображаются в данной консоли. Смените кодировку или консоль."
+            + bcolors.ENDC
+        )
 
-
+def download(file_name, type, user_id):
+    #FavoriteTracks, LikedArtists, LikedAlbums, LikedPlaylists, OwnedPlaylists
+    if type == 'FavoriteTracks':
+        data = get_favorite_tracks(user_id=user_id)
+    elif type == 'LikedArtists':
+        data = get_users_likes_artists(user_id=user_id)
+    elif type == 'LikedAlbums':
+        data = get_user_like_albums(user_id=user_id)
+    elif type == 'LikedPlaylists':
+        data = get_user_like_playlists(user_id=user_id)
+    elif type == 'OwnedPlaylists':
+        data = get_user_playlists(user_id=user_id)
+    try:
+        if file_name.split('.')[1] == 'csv':
+            
+            write_data_to_csv(data=data, name_file=file_name)
+            print(f"Данные сохранены в файл {file_name} в папке data")
+        elif file_name.split('.')[1] == 'txt':
+            write_data_to_txt(data=data, name_file=file_name)
+            print(f"Данные сохранены в файл {file_name} в папке data")
+        else:
+            print('Неверное расширение файла, доступны только txt и csv.')
+    except Exception as e:
+        print(e)    
+        
+    
+    
 def get_fav_tracks(user_id=None):
     tracks = get_favorite_tracks(user_id=user_id)
     for track in tracks[:10]:
@@ -170,7 +209,7 @@ def find_owner(user_id=None):
         print(f"{i}: {p.title} — от {p.owner.uid}")
     i = int(input("Владельца какого плейлиста ищем: "))
     owner_id = playlists[i].owner.uid
-    print(f"\n👤 Владелец этого плейлиста: {owner_id}")
+    print(f"\nВладелец этого плейлиста: {owner_id}")
 
 
 def main():
@@ -178,9 +217,7 @@ def main():
     is_english = "--en" in sys.argv
 
     help_text = {
-        "desc": "Yandex Music CLI Analytics"
-        if is_english
-        else "Консольная аналитика Яндекс Музыки",
+        "desc": "YM-Anal",
         "my": "Show my liked tracks" if is_english else "Показать мои любимые треки",
         "other": "Show another user's playlist"
         if is_english
@@ -188,6 +225,9 @@ def main():
         "compare": "Compare two users' playlists"
         if is_english
         else "Сравнить плейлисты двух пользователей",
+        "download": "Save to a file `FileName` (supports csv and txt extensions) information of type `Type` (type from the list: FavoriteTracks, LikedArtists, LikedAlbums, LikedPlaylists, OwnedPlaylists) for user `USER_ID`"
+        if is_english
+        else "Сохранить в файл с названием `FileName` (поддерживает расширения csv и txt) информацию типа `Type`(тип из списка: FavoriteTracks, LikedArtists, LikedAlbums, LikedPlaylists, OwnedPlaylists) пользователя `USER_ID`",
         "find": "Find the owner of a liked playlist"
         if is_english
         else "Найти владельца плейлиста из лайков",
@@ -195,14 +235,17 @@ def main():
 
     parser = argparse.ArgumentParser(description=help_text["desc"])
     parser.add_argument("--my", action="store_true", help=help_text["my"])
-    parser.add_argument("--other", metavar="USER_ID", help=help_text["other"])
+    parser.add_argument("--other", metavar="UserId", help=help_text["other"])
     parser.add_argument(
-        "--compare", nargs=2, metavar=("USER1", "USER2"), help=help_text["compare"]
+        "--compare", nargs=2, metavar=("User1", "User2"), help=help_text["compare"]
+    )
+    parser.add_argument(
+        "--download", nargs=3, metavar=("FileName", "Type", "UserId"), help=help_text["download"]
     )
     parser.add_argument("--find-owner", action="store_true", help=help_text["find"])
     parser.add_argument(
         "--en", action="store_true", help="switch help to English"
-    )  # скрытый переключатель
+    )  
 
     args = parser.parse_args()
 
@@ -212,6 +255,8 @@ def main():
         get_stats(args.other)
     elif args.compare:
         compare_playlists(args.compare[0], args.compare[1])
+    elif args.download:
+        download(args.download[0], args.download[1], args.download[2])
     elif args.find_owner:
         find_owner()
     else:

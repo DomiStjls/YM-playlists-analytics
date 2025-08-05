@@ -25,20 +25,25 @@ def get_user_id_from_token(token=None):
     return {"id": info.account.uid, "full_name": info.account.full_name}
 
 
-def write_tracks_to_file(tracks, name_file="playlist.txt"):
+def write_data_to_txt(data, name_file="playlist.txt"):
     text = ""
-    for track in tracks:
-        artists = ""
-        if track.get("artists"):  # track.artists:
-            artists = " - " + ", ".join(
-                artist.get("name") for artist in track["artists"]
-            )
-        text += track.get("title") + artists + "\n"
+    keys = list(data[0].keys())
+    text += f"{'; '.join(keys)}\n"
+    for el in data:
+        text += f"{'; '.join([str(el[key]) for key in keys])}\n"
     if not os.path.isdir("data"):
         os.mkdir("data")
     path = os.path.join("data", name_file)
     with open(path, "w", encoding="utf-8") as f:
         f.write(text)
+
+
+def write_data_to_csv(data, name_file="playlist.csv"):
+    df = pd.DataFrame(data)
+    if not os.path.isdir("data"):
+        os.mkdir("data")
+    path = os.path.join("data", name_file)
+    df.to_csv(path, index=False, sep=";")
 
 
 def get_favorite_tracks(token=None, user_id=None):
@@ -55,15 +60,15 @@ def get_favorite_tracks(token=None, user_id=None):
                 "title": track.title,
                 "id": track.id,
                 "duration": track.duration_ms,
-                "artists": [
-                    {"name": artist.name, "id": artist.id} for artist in track.artists
-                ],
-                "albums": [
-                    {"title": album.title, "id": album.id} for album in track.albums
-                ],
+                "artists": ", ".join(
+                    [f"{artist.name} - {artist.id}" for artist in track.artists]
+                ),
+                "albums": ", ".join(
+                    [f"{album.title} - {album.id}" for album in track.albums]
+                ),
             }
         )
-    return pd.DataFrame(tracks)
+    return tracks
 
 
 def get_user_playlists(token=None, user_id=None):
@@ -104,7 +109,7 @@ def get_user_like_playlists(token=None, user_id=None):
                 "playlist_uid": playlist.playlist.uid,
                 "track_count": playlist.playlist.track_count,
                 "playlist_title": playlist.playlist.title,
-                "playlist_duration": playlist.playlist.duration_ms
+                "playlist_duration": playlist.playlist.duration_ms,
             }
         )
     return playlists_list
@@ -150,7 +155,7 @@ def get_users_likes_artists(token=None, user_id=None):
             {
                 "artist_id": artist.artist.id,
                 "artist_name": artist.artist.name,
-                "artist_genres": artist.artist.genres,
+                "artist_genres": ', '.join(artist.artist.genres),
                 "track_count": artist.artist.counts.tracks,
             }
         )
