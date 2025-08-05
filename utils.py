@@ -2,6 +2,11 @@
 from yandex_music import Client
 import os
 from dotenv import load_dotenv
+import pandas as pd
+
+# logging.basicConfig(
+#     level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+# )
 
 
 # to get the token: https://yandex-music.readthedocs.io/en/main/token.html
@@ -58,7 +63,7 @@ def get_favorite_tracks(token=None, user_id=None):
                 ],
             }
         )
-    return tracks
+    return pd.DataFrame(tracks)
 
 
 def get_user_playlists(token=None, user_id=None):
@@ -99,6 +104,7 @@ def get_user_like_playlists(token=None, user_id=None):
                 "playlist_uid": playlist.playlist.uid,
                 "track_count": playlist.playlist.track_count,
                 "playlist_title": playlist.playlist.title,
+                "playlist_duration": playlist.playlist.duration_ms
             }
         )
     return playlists_list
@@ -121,7 +127,7 @@ def get_user_like_albums(token=None, user_id=None):
             {
                 "album_id": album.album.id,
                 "track_count": album.album.track_count,
-                "playlist_title": album.album.title,
+                "album_title": album.album.title,
             }
         )
     return albums_list
