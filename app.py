@@ -11,7 +11,7 @@ from utils import (
     get_token_from_env,
     write_data_to_txt,
     write_data_to_csv,
-    get_favorite_tracks,
+    get_tracks_from_playlist,
     get_user_playlists,
     get_user_like_playlists,
     get_users_likes_artists,
@@ -68,7 +68,11 @@ def get_stats(user_id=None):
             f.write("\n".join(ids) + "\n")
 
     with open("data/ids.txt", "a", encoding="utf-8") as f:
-        known_ids = [f"{uid} - {name}" for uid, name in list(set(known_ids)) if str(uid) not in ids]
+        known_ids = [
+            f"{uid} - {name}"
+            for uid, name in list(set(known_ids))
+            if str(uid) not in ids
+        ]
         f.write("\n".join(known_ids) + "\n")
     own_playlists = get_user_playlists(user_id=user_id)
     artists = get_users_likes_artists(user_id=user_id)
@@ -174,7 +178,7 @@ def download(file_name, type, user_id=get_user_id_from_token()["id"]):
     # FavoriteTracks, LikedArtists, LikedAlbums, LikedPlaylists, OwnedPlaylists
     try:
         if type == "FavoriteTracks":
-            data = get_favorite_tracks(user_id=user_id)
+            data = get_tracks_from_playlist(user_id=user_id, are_favourite=True)
         elif type == "LikedArtists":
             data = get_users_likes_artists(user_id=user_id)
         elif type == "LikedAlbums":
@@ -197,14 +201,11 @@ def download(file_name, type, user_id=get_user_id_from_token()["id"]):
 
 
 def get_fav_tracks(user_id=None):
-    tracks = get_favorite_tracks(user_id=user_id)
-    for track in tracks[:10]:
-        print(
-            f"{track['title']} - {', '.join(artist['name'] for artist in track['artists'])} - {track['duration'] / 60000:.2f}min"
-        )
-
-
-def get_playlist(user_id=None):
+    # tracks = get_favorite_tracks(user_id=user_id)
+    # for track in tracks[:10]:
+    #     print(
+    #         f"{track['title']} - {', '.join(artist['name'] for artist in track['artists'])} - {track['duration'] / 60000:.2f}min"
+    #     )
     pass
 
 
@@ -214,22 +215,42 @@ def compare_playlists(user1, user2=get_user_id_from_token()["id"]):
     # elif len(args) == 1:
     #     user1 = args[0]
     #     user2 = get_user_id_from_token()["id"]
+    kinds1 = []
+    kinds2 = []
     pl1 = get_user_playlists(user_id=user1)
     pl2 = get_user_playlists(user_id=user2)
-    print("\nПлейлисты пользователя 1:")
-    for p in pl1:
-        print(f"{p['kind']}: {p['playlist_title']}")
-    i1 = int(input("Выберите номер плейлиста для пользователя 1: "))
 
-    print("\nПлейлисты пользователя 2:")
-    for i, p in pl2:
-        print(f"{i}: {p['playlist_title']}")
-    i2 = int(input("Выберите номер плейлиста для пользователя 2: "))
-
-    t1 = set(t.id for t in pl1[i1].fetch_tracks())
-    t2 = set(t.id for t in pl2[i2].fetch_tracks())
-    common = t1 & t2
-    print(f"\n🔁 Общих треков: {len(common)}")
+    pl1.append({"kind": "0", "playlist_title": "Мне нравится"})
+    pl2.append({"kind": "0", "playlist_title": "Мне нравится"})
+    if len(pl1) == 0 or len(pl2) == 0:
+        print("Нет плейлистов у одного из пользователей.")
+    else:
+        print("\nПлейлисты пользователя 1:")
+        for p in pl1:
+            kinds1.append(str(p["kind"]))
+            print(f"{p['kind']}: {p['playlist_title']}")
+        while True:
+            i1 = input("Выберите номер плейлиста для пользователя 1: ")
+            if i1 in kinds1:
+                break
+        print("\nПлейлисты пользователя 2:")
+        for p in pl2:
+            kinds2.append(str(p["kind"]))
+            print(f"{p['kind']}: {p['playlist_title']}")
+        while True:
+            i2 = input("Выберите номер плейлиста для пользователя 2: ")
+            if i2 in kinds2:
+                break
+        all_t1 = get_tracks_from_playlist(
+            user_id=user1, kind=i1, are_favorite=i1 == "0"
+        )
+        all_t2 = get_tracks_from_playlist(
+            user_id=user2, kind=i2, are_favorite=i2 == "0"
+        )
+        t1 = set([el["id"] for el in all_t1])
+        t2 = set([el["id"] for el in all_t2])
+        common = t1 & t2
+        print(f"\nОбщих треков: {len(common)}")
 
 
 def find_owner(user_id=None):

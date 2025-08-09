@@ -50,15 +50,18 @@ def write_data_to_csv(data, name_file="playlist.csv"):
     df.to_csv(path, index=False, sep=";")
 
 
-def get_favorite_tracks(token=None, user_id=None):
+def get_tracks_from_playlist(token=None, user_id=None, are_favorite=False, kind=None):
     if not token:
         token = get_token_from_env()
     if not token:
         return None
     client = Client(token=token).init()
-    playlist = client.users_likes_tracks(user_id=user_id)
+    if are_favorite:
+        playlist = client.users_likes_tracks(user_id=user_id).fetch_tracks()
+    else:
+        playlist = client.users_playlists(kind=kind, user_id=user_id).fetch_tracks()
     tracks = []
-    for track in playlist.fetch_tracks():
+    for track in playlist:
         tracks.append(
             {
                 "title": track.title,
@@ -82,7 +85,7 @@ def get_user_playlists(token=None, user_id=None):
         return None
     client = Client(token=token).init()
     playlists = client.users_playlists_list(user_id=user_id)
-
+    
     playlists_list = []
     for playlist in playlists:
         playlists_list.append(
