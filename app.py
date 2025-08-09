@@ -7,6 +7,7 @@ from tabulate import tabulate
 from collections import Counter
 from utils import (
     get_user_id_from_token,
+    is_available,
     get_token_from_env,
     write_data_to_txt,
     write_data_to_csv,
@@ -19,6 +20,8 @@ from utils import (
 from colorama import just_fix_windows_console
 
 just_fix_windows_console()
+if not os.path.exists("data"):
+    os.mkdir("data")
 
 
 class bcolors:
@@ -48,18 +51,34 @@ if not os.path.exists("logs"):
 
 
 def get_stats(user_id=None):
+    if not user_id or user_id == -1:
+        user_id = get_user_id_from_token()["id"]
     albums = get_user_like_albums(user_id=user_id)
     liked_playlists = get_user_like_playlists(user_id=user_id)
+    known_ids = [
+        (pl["owner_uid"], pl["owner_name"])
+        for pl in liked_playlists
+        if is_available(pl["owner_name"].lower())
+    ]
+    if os.path.exists("data/ids.txt"):
+        ids = open("data/ids.txt", encoding="utf-8").read()
+    else:
+        ids = [f"{user_id} - {get_user_id_from_token()['full_name']}"]
+        with open("data/ids.txt", "w", encoding="utf-8") as f:
+            f.write("\n".join(ids) + "\n")
+
+    with open("data/ids.txt", "a", encoding="utf-8") as f:
+        known_ids = [f"{uid} - {name}" for uid, name in list(set(known_ids)) if str(uid) not in ids]
+        f.write("\n".join(known_ids) + "\n")
     own_playlists = get_user_playlists(user_id=user_id)
     artists = get_users_likes_artists(user_id=user_id)
-    if not user_id:
-        user_id = get_user_id_from_token()["id"]
+
     try:
         print(f"\n{bcolors.OKCYAN}id пользователя:{bcolors.ENDC} {user_id}\n")
 
         print(f"{bcolors.OKCYAN}Понравившиеся альбомы:{bcolors.ENDC} {len(albums)}")
         if albums:
-            album_table = [[a["album_id"], a["album_title"]] for a in albums]
+            album_table = [[a["album_id"], a["album_title"]] for a in albums[:20]]
             print(
                 tabulate(
                     album_table,
@@ -67,7 +86,7 @@ def get_stats(user_id=None):
                     tablefmt="rst",
                 )
             )
-        print()
+        print("...Сокращено\n" if len(albums) > 20 else "\n")
 
         print(
             f"{bcolors.OKCYAN}Понравившиеся плейлисты:{bcolors.ENDC} {len(liked_playlists)}"
@@ -94,7 +113,7 @@ def get_stats(user_id=None):
                     tablefmt="rst",
                 )
             )
-        print()
+        print("...Сокращено\n" if len(liked_playlists) > 20 else "\n")
 
         print(
             f"{bcolors.OKCYAN}Собственные плейлисты:{bcolors.ENDC} {len(own_playlists)}"
@@ -111,15 +130,14 @@ def get_stats(user_id=None):
                     tablefmt="rst",
                 )
             )
-        print()
+        print("...Сокращено\n" if len(own_playlists) > 20 else "\n")
 
         print(
             f"{bcolors.OKCYAN}Понравившиеся исполнители:{bcolors.ENDC} {len(artists)}"
         )
         if artists:
             artist_table = [
-                [a["artist_id"], a["artist_name"], ", ".join(a["artist_genres"])]
-                for a in artists
+                [a["artist_id"], a["artist_name"], a["artist_genres"]] for a in artists
             ]
             print(
                 tabulate(
@@ -128,14 +146,20 @@ def get_stats(user_id=None):
                     tablefmt="rst",
                 )
             )
-        print()
+        print("...Сокращено\n" if len(artists) > 20 else "\n")
 
         artists_genres = []
         for artist in artists:
-            [artists_genres.append(genre) for genre in artist["artist_genres"]]
+            [
+                artists_genres.append(genre)
+                for genre in artist["artist_genres"].split(", ")
+            ]
         most_common_genres = Counter(artists_genres).most_common(3)
         print(
             f"{bcolors.OKCYAN}Самые часто встречающиеся жанры среди любимых авторов:{bcolors.ENDC} {', '.join([genre[0] for genre in most_common_genres])}"
+        )
+        print(
+            "Все выводы сокращены до 20 элементов. Для получения полного списка скачайте необходинные данные.\n"
         )
     except UnicodeEncodeError:
         print()
@@ -145,33 +169,33 @@ def get_stats(user_id=None):
             + bcolors.ENDC
         )
 
-def download(file_name, type, user_id):
-    #FavoriteTracks, LikedArtists, LikedAlbums, LikedPlaylists, OwnedPlaylists
-    if type == 'FavoriteTracks':
-        data = get_favorite_tracks(user_id=user_id)
-    elif type == 'LikedArtists':
-        data = get_users_likes_artists(user_id=user_id)
-    elif type == 'LikedAlbums':
-        data = get_user_like_albums(user_id=user_id)
-    elif type == 'LikedPlaylists':
-        data = get_user_like_playlists(user_id=user_id)
-    elif type == 'OwnedPlaylists':
-        data = get_user_playlists(user_id=user_id)
+
+def download(file_name, type, user_id=get_user_id_from_token()["id"]):
+    # FavoriteTracks, LikedArtists, LikedAlbums, LikedPlaylists, OwnedPlaylists
     try:
-        if file_name.split('.')[1] == 'csv':
-            
+        if type == "FavoriteTracks":
+            data = get_favorite_tracks(user_id=user_id)
+        elif type == "LikedArtists":
+            data = get_users_likes_artists(user_id=user_id)
+        elif type == "LikedAlbums":
+            data = get_user_like_albums(user_id=user_id)
+        elif type == "LikedPlaylists":
+            data = get_user_like_playlists(user_id=user_id)
+        elif type == "OwnedPlaylists":
+            data = get_user_playlists(user_id=user_id)
+
+        if file_name.split(".")[1] == "csv":
             write_data_to_csv(data=data, name_file=file_name)
             print(f"Данные сохранены в файл {file_name} в папке data")
-        elif file_name.split('.')[1] == 'txt':
+        elif file_name.split(".")[1] == "txt":
             write_data_to_txt(data=data, name_file=file_name)
             print(f"Данные сохранены в файл {file_name} в папке data")
         else:
-            print('Неверное расширение файла, доступны только txt и csv.')
+            print("Неверное расширение файла, доступны только txt и csv.")
     except Exception as e:
-        print(e)    
-        
-    
-    
+        print(e)
+
+
 def get_fav_tracks(user_id=None):
     tracks = get_favorite_tracks(user_id=user_id)
     for track in tracks[:10]:
@@ -184,17 +208,22 @@ def get_playlist(user_id=None):
     pass
 
 
-def compare_playlists(user1, user2):
+def compare_playlists(user1, user2=get_user_id_from_token()["id"]):
+    # if len(args) == 2:
+    #     user1, user2 = args
+    # elif len(args) == 1:
+    #     user1 = args[0]
+    #     user2 = get_user_id_from_token()["id"]
     pl1 = get_user_playlists(user_id=user1)
     pl2 = get_user_playlists(user_id=user2)
     print("\nПлейлисты пользователя 1:")
-    for i, p in enumerate(pl1):
-        print(f"{i}: {p.title}")
+    for p in pl1:
+        print(f"{p['kind']}: {p['playlist_title']}")
     i1 = int(input("Выберите номер плейлиста для пользователя 1: "))
 
     print("\nПлейлисты пользователя 2:")
-    for i, p in enumerate(pl2):
-        print(f"{i}: {p.title}")
+    for i, p in pl2:
+        print(f"{i}: {p['playlist_title']}")
     i2 = int(input("Выберите номер плейлиста для пользователя 2: "))
 
     t1 = set(t.id for t in pl1[i1].fetch_tracks())
@@ -218,45 +247,70 @@ def main():
 
     help_text = {
         "desc": "YM-Anal",
-        "my": "Show my liked tracks" if is_english else "Показать мои любимые треки",
-        "other": "Show another user's playlist"
+        "stats": "Show statistics"
         if is_english
-        else "Показать треки другого пользователя",
+        else "Показать статистику пользователя",
         "compare": "Compare two users' playlists"
         if is_english
         else "Сравнить плейлисты двух пользователей",
-        "download": "Save to a file `FileName` (supports csv and txt extensions) information of type `Type` (type from the list: FavoriteTracks, LikedArtists, LikedAlbums, LikedPlaylists, OwnedPlaylists) for user `USER_ID`"
+        "download": "Save to a file `FileName` (.csv and .txt) information of type `Type` (type from the list: FavoriteTracks, LikedArtists, LikedAlbums, LikedPlaylists, OwnedPlaylists) for user `UserId`"
         if is_english
-        else "Сохранить в файл с названием `FileName` (поддерживает расширения csv и txt) информацию типа `Type`(тип из списка: FavoriteTracks, LikedArtists, LikedAlbums, LikedPlaylists, OwnedPlaylists) пользователя `USER_ID`",
+        else "Сохранить в файл `FileName` (.csv и .txt) информацию типа `Type`(тип из списка: FavoriteTracks, LikedArtists, LikedAlbums, LikedPlaylists, OwnedPlaylists) пользователя `UserId`",
         "find": "Find the owner of a liked playlist"
         if is_english
         else "Найти владельца плейлиста из лайков",
     }
 
     parser = argparse.ArgumentParser(description=help_text["desc"])
-    parser.add_argument("--my", action="store_true", help=help_text["my"])
-    parser.add_argument("--other", metavar="UserId", help=help_text["other"])
     parser.add_argument(
-        "--compare", nargs=2, metavar=("User1", "User2"), help=help_text["compare"]
+        "--stats",
+        nargs="?",
+        const=-1,
+        metavar=("UserId (optional)"),
+        help=help_text["stats"],
     )
     parser.add_argument(
-        "--download", nargs=3, metavar=("FileName", "Type", "UserId"), help=help_text["download"]
+        "--compare",
+        nargs="*",
+        metavar="UserId1, UserId2 (optional)",
+        help=help_text["compare"],
+    )
+    parser.add_argument(
+        "--download",
+        nargs="*",
+        metavar="FileName, Type, UserId (optional)",
+        help=help_text["download"],
     )
     parser.add_argument("--find-owner", action="store_true", help=help_text["find"])
-    parser.add_argument(
-        "--en", action="store_true", help="switch help to English"
-    )  
+    parser.add_argument("--en", action="store_true", help="switch help to English")
 
     args = parser.parse_args()
 
-    if args.my:
-        get_stats()
-    elif args.other:
-        get_stats(args.other)
+    if args.stats:
+        get_stats(args.stats)
     elif args.compare:
-        compare_playlists(args.compare[0], args.compare[1])
+        compare_playlists(*args.compare)
     elif args.download:
-        download(args.download[0], args.download[1], args.download[2])
+        a = args.download
+        if len(a) < 2:
+            print("Недостаточно аргументов, обязательными являются FileName и Type.")
+            sys.exit(1)
+        elif a[0].split(".")[1] not in ["csv", "txt"]:
+            print("Аргумент FileName должен иметь расширение csv или txt.")
+            sys.exit(1)
+        elif a[1] not in [
+            "FavoriteTracks",
+            "LikedArtists",
+            "LikedAlbums",
+            "LikedPlaylists",
+            "OwnedPlaylists",
+        ]:
+            print(
+                "Аргумент Type должен быть одним из: FavoriteTracks, LikedArtists, LikedAlbums, LikedPlaylists, OwnedPlaylists."
+            )
+            sys.exit(1)
+        else:
+            download(*a)
     elif args.find_owner:
         find_owner()
     else:

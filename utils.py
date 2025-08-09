@@ -15,6 +15,10 @@ def get_token_from_env():
     token = os.getenv("TOKEN", None)
     return token
 
+def is_available(owner):
+    unavailable_owners = ['yamusic', 'yandex', 'yandexmusic', 'яндекс']
+    return all([el not in str(owner) for el in unavailable_owners])
+    
 
 def get_user_id_from_token(token=None):
     if not token:
