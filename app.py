@@ -16,6 +16,7 @@ from utils import (
     get_user_like_playlists,
     get_users_likes_artists,
     get_user_like_albums,
+    add_known_ids,
 )
 from colorama import just_fix_windows_console
 
@@ -60,20 +61,7 @@ def get_stats(user_id=None):
         for pl in liked_playlists
         if is_available(pl["owner_name"].lower())
     ]
-    if os.path.exists("data/ids.txt"):
-        ids = open("data/ids.txt", encoding="utf-8").read()
-    else:
-        ids = [f"{user_id} - {get_user_id_from_token()['full_name']}"]
-        with open("data/ids.txt", "w", encoding="utf-8") as f:
-            f.write("\n".join(ids) + "\n")
-
-    with open("data/ids.txt", "a", encoding="utf-8") as f:
-        known_ids = [
-            f"{uid} - {name}"
-            for uid, name in list(set(known_ids))
-            if str(uid) not in ids
-        ]
-        f.write("\n".join(known_ids) + "\n")
+    add_known_ids(known_ids)
     own_playlists = get_user_playlists(user_id=user_id)
     artists = get_users_likes_artists(user_id=user_id)
 
@@ -250,16 +238,21 @@ def compare_playlists(user1, user2=get_user_id_from_token()["id"]):
         t1 = set([el["id"] for el in all_t1])
         t2 = set([el["id"] for el in all_t2])
         common = t1 & t2
-        print(f"\nОбщих треков: {len(common)}")
+        print(f"\nОбщих треков: {len(common)} - {len(common) / len(t1 | t2) * 100:.2f}% от общего количества треков")
 
 
 def find_owner(user_id=None):
-    playlists = get_user_playlists(user_id=user_id)
+    playlists = get_user_like_playlists(user_id=user_id)
+    d = {}
     for i, p in enumerate(playlists):
-        print(f"{i}: {p.title} — от {p.owner.uid}")
-    i = int(input("Владельца какого плейлиста ищем: "))
-    owner_id = playlists[i].owner.uid
-    print(f"\nВладелец этого плейлиста: {owner_id}")
+        d[i] = (p['owner_uid'], p['owner_name'])
+        print(f"{i + 1}: {p['playlist_uid']} - {p['playlist_title']} - {p['owner_name']}")
+    i = int(input("Владельца какого плейлиста ищем: ")) -1 
+    
+    print(f"\nid Владельца этого плейлиста: {d[i][0]}. Добавить в известные пользователи? (y/n)")
+    if input() == "y":
+        add_known_ids([(d[i][0], d[i][1])])
+    
 
 
 def main():
@@ -302,7 +295,7 @@ def main():
         metavar="FileName, Type, UserId (optional)",
         help=help_text["download"],
     )
-    parser.add_argument("--find-owner", action="store_true", help=help_text["find"])
+    parser.add_argument("--find", action="store_true", help=help_text["find"])
     parser.add_argument("--en", action="store_true", help="switch help to English")
 
     args = parser.parse_args()
@@ -332,7 +325,7 @@ def main():
             sys.exit(1)
         else:
             download(*a)
-    elif args.find_owner:
+    elif args.find:
         find_owner()
     else:
         parser.print_help()
