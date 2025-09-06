@@ -17,7 +17,10 @@ from utils import (
     get_users_likes_artists,
     get_user_like_albums,
     add_known_ids,
+    get_cache_info, 
+    cleanup_expired_cache
 )
+from test import compare_playlists_enhanced, print_comparison_report
 from colorama import just_fix_windows_console
 
 just_fix_windows_console()
@@ -235,10 +238,11 @@ def compare_playlists(user1, user2=get_user_id_from_token()["id"]):
         all_t2 = get_tracks_from_playlist(
             user_id=user2, kind=i2, are_favorite=i2 == "0"
         )
-        t1 = set([el["id"] for el in all_t1])
-        t2 = set([el["id"] for el in all_t2])
-        common = t1 & t2
-        print(f"\nОбщих треков: {len(common)} - {len(common) / len(t1 | t2) * 100:.2f}% от общего количества треков")
+        print_comparison_report(compare_playlists_enhanced(all_t1, all_t2, playlist1_name="Плейлист пользователя 1", playlist2_name="Плейлист пользователя 2"))
+        # t1 = set([el["id"] for el in all_t1])
+        # t2 = set([el["id"] for el in all_t2])
+        # common = t1 & t2
+        # print(f"\nОбщих треков: {len(common)} - {len(common) / len(t1 | t2) * 100:.2f}% от общего количества треков")
 
 
 def find_owner(user_id=None):
@@ -297,6 +301,8 @@ def main():
     )
     parser.add_argument("--find", action="store_true", help=help_text["find"])
     parser.add_argument("--en", action="store_true", help="switch help to English")
+    
+    parser.add_argument('--cache', action='store_true', help='get cache info')
 
     args = parser.parse_args()
 
@@ -327,6 +333,9 @@ def main():
             download(*a)
     elif args.find:
         find_owner()
+        
+    elif args.cache:
+        print(get_cache_info())
     else:
         parser.print_help()
 
