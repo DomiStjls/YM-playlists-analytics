@@ -1,4 +1,4 @@
-# YM-playlists-analytics
+# YM-analytics
 
 # Описание работы файла utils.py
 
@@ -34,6 +34,8 @@
     "title": str,           # Название трека
     "id": int,              # ID трека
     "duration": int,        # Длительность в миллисекундах
+    "year": int,            # Год альбома, в который входить трек
+    "genre": str,           # Жанр альбома, в который входить трек
     "artists": str,         # "Артист1 - ID1, Артист2 - ID2"
     "albums": str           # "Альбом1 - ID1, Альбом2 - ID2"
 }]

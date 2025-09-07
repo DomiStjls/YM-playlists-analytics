@@ -1,14 +1,9 @@
 # console_app.py
 import os
 import argparse
-import logging
 import sys
-from tabulate import tabulate
-from collections import Counter
 from utils import (
     get_user_id_from_token,
-    is_available,
-    get_token_from_env,
     write_data_to_txt,
     write_data_to_csv,
     get_tracks_from_playlist,
@@ -18,9 +13,10 @@ from utils import (
     get_user_like_albums,
     add_known_ids,
     get_cache_info, 
-    cleanup_expired_cache
+    
 )
-from test import compare_playlists_enhanced, print_comparison_report
+from userStat import get_quick_stats_summary, get_stats_enhanced
+from compare import compare_playlists_enhanced, print_comparison_report
 from colorama import just_fix_windows_console
 
 just_fix_windows_console()
@@ -41,8 +37,8 @@ class bcolors:
 
 
 # Логирование
-if not os.path.exists("logs"):
-    os.mkdir("logs")
+# if not os.path.exists("logs"):
+#     os.mkdir("logs")
 # logging.basicConfig(
 #     level=logging.INFO,
 #     format="%(asctime)s - %(levelname)s - %(message)s",
@@ -54,115 +50,8 @@ if not os.path.exists("logs"):
 # )
 
 
-def get_stats(user_id=None):
-    if not user_id or user_id == -1:
-        user_id = get_user_id_from_token()["id"]
-    albums = get_user_like_albums(user_id=user_id)
-    liked_playlists = get_user_like_playlists(user_id=user_id)
-    known_ids = [
-        (pl["owner_uid"], pl["owner_name"])
-        for pl in liked_playlists
-        if is_available(pl["owner_name"].lower())
-    ]
-    add_known_ids(known_ids)
-    own_playlists = get_user_playlists(user_id=user_id)
-    artists = get_users_likes_artists(user_id=user_id)
-
-    try:
-        print(f"\n{bcolors.OKCYAN}id пользователя:{bcolors.ENDC} {user_id}\n")
-
-        print(f"{bcolors.OKCYAN}Понравившиеся альбомы:{bcolors.ENDC} {len(albums)}")
-        if albums:
-            album_table = [[a["album_id"], a["album_title"]] for a in albums[:20]]
-            print(
-                tabulate(
-                    album_table,
-                    headers=["id альбома", "Название альбома"],
-                    tablefmt="rst",
-                )
-            )
-        print("...Сокращено\n" if len(albums) > 20 else "\n")
-
-        print(
-            f"{bcolors.OKCYAN}Понравившиеся плейлисты:{bcolors.ENDC} {len(liked_playlists)}"
-        )
-        if liked_playlists:
-            liked_table = [
-                [
-                    p["playlist_uid"],
-                    p["playlist_title"],
-                    p["owner_uid"],
-                    p["owner_name"],
-                ]
-                for p in liked_playlists
-            ]
-            print(
-                tabulate(
-                    liked_table,
-                    headers=[
-                        "id плейлиста",
-                        "Название",
-                        "id владельца",
-                        "Имя владельца",
-                    ],
-                    tablefmt="rst",
-                )
-            )
-        print("...Сокращено\n" if len(liked_playlists) > 20 else "\n")
-
-        print(
-            f"{bcolors.OKCYAN}Собственные плейлисты:{bcolors.ENDC} {len(own_playlists)}"
-        )
-        if own_playlists:
-            own_table = [
-                [p["kind"], p["playlist_title"], p["track_count"]]
-                for p in own_playlists
-            ]
-            print(
-                tabulate(
-                    own_table,
-                    headers=["Номер", "Название", "Количество треков"],
-                    tablefmt="rst",
-                )
-            )
-        print("...Сокращено\n" if len(own_playlists) > 20 else "\n")
-
-        print(
-            f"{bcolors.OKCYAN}Понравившиеся исполнители:{bcolors.ENDC} {len(artists)}"
-        )
-        if artists:
-            artist_table = [
-                [a["artist_id"], a["artist_name"], a["artist_genres"]] for a in artists
-            ]
-            print(
-                tabulate(
-                    artist_table,
-                    headers=["id исполнителя", "Имя", "Жанры"],
-                    tablefmt="rst",
-                )
-            )
-        print("...Сокращено\n" if len(artists) > 20 else "\n")
-
-        artists_genres = []
-        for artist in artists:
-            [
-                artists_genres.append(genre)
-                for genre in artist["artist_genres"].split(", ")
-            ]
-        most_common_genres = Counter(artists_genres).most_common(3)
-        print(
-            f"{bcolors.OKCYAN}Самые часто встречающиеся жанры среди любимых авторов:{bcolors.ENDC} {', '.join([genre[0] for genre in most_common_genres])}"
-        )
-        print(
-            "Все выводы сокращены до 20 элементов. Для получения полного списка скачайте необходинные данные.\n"
-        )
-    except UnicodeEncodeError:
-        print()
-        print(
-            bcolors.WARNING
-            + "UnicodeEncodeError. В названии плейлиста или чего-нибудь еще есть некорректные символы, которые не отображаются в данной консоли. Смените кодировку или консоль."
-            + bcolors.ENDC
-        )
+def get_stats(user_id=None, short=False):
+    return get_stats_enhanced(user_id) if not short else get_quick_stats_summary(user_id)
 
 
 def download(file_name, type, user_id=get_user_id_from_token()["id"]):
@@ -224,6 +113,9 @@ def compare_playlists(user1, user2=get_user_id_from_token()["id"]):
             i1 = input("Выберите номер плейлиста для пользователя 1: ")
             if i1 in kinds1:
                 break
+        all_t1 = get_tracks_from_playlist(
+            user_id=user1, kind=i1, are_favorite=i1 == "0"
+        )
         print("\nПлейлисты пользователя 2:")
         for p in pl2:
             kinds2.append(str(p["kind"]))
@@ -232,12 +124,11 @@ def compare_playlists(user1, user2=get_user_id_from_token()["id"]):
             i2 = input("Выберите номер плейлиста для пользователя 2: ")
             if i2 in kinds2:
                 break
-        all_t1 = get_tracks_from_playlist(
-            user_id=user1, kind=i1, are_favorite=i1 == "0"
-        )
+        
         all_t2 = get_tracks_from_playlist(
             user_id=user2, kind=i2, are_favorite=i2 == "0"
         )
+        
         print_comparison_report(compare_playlists_enhanced(all_t1, all_t2, playlist1_name="Плейлист пользователя 1", playlist2_name="Плейлист пользователя 2"))
         # t1 = set([el["id"] for el in all_t1])
         # t2 = set([el["id"] for el in all_t2])

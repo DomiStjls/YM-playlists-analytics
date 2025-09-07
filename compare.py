@@ -130,7 +130,7 @@ def compare_playlists_enhanced(
     dict
         Детальная аналитика сравнения плейлистов
     """
-
+    # print(len(playlist1_tracks), len(playlist2_tracks))
     if not playlist1_tracks or not playlist2_tracks:
         return {"error": "Один или оба плейлиста пусты"}
 
@@ -237,7 +237,7 @@ def compare_playlists_enhanced(
             "playlist1": {
                 "total_duration_ms": total_duration_p1,
                 "total_duration_formatted": str(
-                    timedelta(milliseconds=total_duration_p1)
+                    timedelta(milliseconds=total_duration_p1).hours
                 ),
                 "avg_track_duration_ms": p1_duration_stats["avg"],
                 "median_duration_ms": p1_duration_stats["median"],
@@ -247,7 +247,7 @@ def compare_playlists_enhanced(
             "playlist2": {
                 "total_duration_ms": total_duration_p2,
                 "total_duration_formatted": str(
-                    timedelta(milliseconds=total_duration_p2)
+                    timedelta(milliseconds=total_duration_p2).hours
                 ),
                 "avg_track_duration_ms": p2_duration_stats["avg"],
                 "median_duration_ms": p2_duration_stats["median"],
@@ -313,18 +313,18 @@ def compare_playlists_enhanced(
     # Генерируем рекомендации на основе анализа
     recommendations = []
 
-    if jaccard_tracks > 0.3:
+    if jaccard_tracks > 0.03:
         recommendations.append(
-            "🎯 Высокая схожесть треков! Возможно, у вас похожие музыкальные вкусы."
+            "Высокая схожесть треков! Возможно, у вас похожие музыкальные вкусы."
         )
-    elif jaccard_tracks < 0.1:
+    elif jaccard_tracks < 0.01:
         recommendations.append(
-            "🌟 Плейлисты очень разные - отличная возможность открыть новую музыку!"
+            "Плейлисты очень разные - отличная возможность открыть новую музыку!"
         )
 
-    if jaccard_artists > 0.5:
+    if jaccard_artists > 0.3:
         recommendations.append(
-            "🎤 Много общих артистов - попробуйте обменяться другими плейлистами!"
+            "Много общих артистов - попробуйте обменяться другими плейлистами!"
         )
 
     if abs(p1_artist_diversity - p2_artist_diversity) > 0.3:
@@ -333,14 +333,14 @@ def compare_playlists_enhanced(
             if p1_artist_diversity > p2_artist_diversity
             else playlist2_name
         )
-        recommendations.append(f"🎨 {more_diverse} более разнообразен по артистам.")
+        recommendations.append(f"{more_diverse} более разнообразен по артистам.")
 
     if abs(p1_collab_ratio - p2_collab_ratio) > 0.3:
         collab_lover = (
             playlist1_name if p1_collab_ratio > p2_collab_ratio else playlist2_name
         )
         recommendations.append(
-            f"🤝 {collab_lover} содержит больше коллабораций между артистами."
+            f"{collab_lover} содержит больше коллабораций между артистами."
         )
 
     duration_diff = abs(total_duration_p1 - total_duration_p2) / 1000 / 60  # в минутах
@@ -349,7 +349,7 @@ def compare_playlists_enhanced(
             playlist1_name if total_duration_p1 > total_duration_p2 else playlist2_name
         )
         recommendations.append(
-            f"⏱️ {longer} значительно длиннее - подходит для долгого прослушивания."
+            f"{longer} значительно длиннее - подходит для долгого прослушивания."
         )
 
     result["recommendations"] = recommendations
@@ -360,7 +360,7 @@ def compare_playlists_enhanced(
 def print_comparison_report(comparison_result):
     """Выводит красиво отформатированный отчет сравнения."""
     if "error" in comparison_result:
-        print(f"❌ Ошибка: {comparison_result['error']}")
+        print(f" Ошибка: {comparison_result['error']}")
         return
 
     r = comparison_result
@@ -368,18 +368,18 @@ def print_comparison_report(comparison_result):
     p2_name = r["playlist_names"]["playlist2"]
 
     print("=" * 80)
-    print(f"🎵 СРАВНЕНИЕ ПЛЕЙЛИСТОВ: {p1_name} vs {p2_name}")
+    print(f"СРАВНЕНИЕ ПЛЕЙЛИСТОВ: {p1_name} vs {p2_name}")
     print("=" * 80)
 
     # Основные показатели
-    print("\n📊 ОСНОВНАЯ СТАТИСТИКА:")
+    print("\nОСНОВНАЯ СТАТИСТИКА:")
     print(f"├─ {p1_name}: {r['basic_stats']['playlist1_track_count']} треков")
     print(f"├─ {p2_name}: {r['basic_stats']['playlist2_track_count']} треков")
     print(f"├─ Общие треки: {r['basic_stats']['common_tracks_count']}")
     print(f"└─ Общие артисты: {r['basic_stats']['common_artists_count']}")
 
     # Схожесть
-    print(f"\n🎯 КОЭФФИЦИЕНТЫ СХОЖЕСТИ:")
+    print(f"\n КОЭФФИЦИЕНТЫ СХОЖЕСТИ:")
     print(
         f"├─ Схожесть по трекам: {r['similarity_scores']['track_jaccard_similarity']:.1%}"
     )
@@ -391,7 +391,7 @@ def print_comparison_report(comparison_result):
     )
 
     # Длительность
-    print(f"\n⏱️ АНАЛИЗ ДЛИТЕЛЬНОСТИ:")
+    print(f"\nАНАЛИЗ ДЛИТЕЛЬНОСТИ:")
     p1_dur = r["duration_analysis"]["playlist1"]
     p2_dur = r["duration_analysis"]["playlist2"]
     print(
@@ -402,14 +402,14 @@ def print_comparison_report(comparison_result):
     )
 
     # Разнообразие
-    print(f"\n🎨 РАЗНООБРАЗИЕ АРТИСТОВ:")
+    print(f"\nРАЗНООБРАЗИЕ АРТИСТОВ:")
     div = r["diversity_analysis"]
     print(f"├─ {p1_name}: {div['playlist1_artist_diversity']:.3f}")
     print(f"├─ {p2_name}: {div['playlist2_artist_diversity']:.3f}")
     print(f"└─ Более разнообразный: {div['more_diverse_playlist']}")
 
     # Топ артисты
-    print(f"\n🌟 ТОП-5 АРТИСТОВ:")
+    print(f"\n ТОП-5 АРТИСТОВ:")
     print(f"  {p1_name}:")
     for i, artist in enumerate(r["top_artists"]["playlist1_top5"], 1):
         print(f"    {i}. {artist['artist']} ({artist['count']} треков)")
@@ -419,7 +419,7 @@ def print_comparison_report(comparison_result):
 
     # Рекомендации
     if r["recommendations"]:
-        print(f"\n💡 РЕКОМЕНДАЦИИ:")
+        print(f"\nРЕКОМЕНДАЦИИ:")
         for rec in r["recommendations"]:
             print(f"  {rec}")
 
