@@ -237,8 +237,8 @@ def compare_playlists_enhanced(
             "playlist1": {
                 "total_duration_ms": total_duration_p1,
                 "total_duration_formatted": str(
-                    timedelta(milliseconds=total_duration_p1).hours
-                ),
+                    timedelta(milliseconds=total_duration_p1)
+                ).split(".")[0],
                 "avg_track_duration_ms": p1_duration_stats["avg"],
                 "median_duration_ms": p1_duration_stats["median"],
                 "shortest_track_ms": p1_duration_stats["min"],
@@ -247,8 +247,8 @@ def compare_playlists_enhanced(
             "playlist2": {
                 "total_duration_ms": total_duration_p2,
                 "total_duration_formatted": str(
-                    timedelta(milliseconds=total_duration_p2).hours
-                ),
+                    timedelta(milliseconds=total_duration_p2)
+                ).split(".")[0],
                 "avg_track_duration_ms": p2_duration_stats["avg"],
                 "median_duration_ms": p2_duration_stats["median"],
                 "shortest_track_ms": p2_duration_stats["min"],

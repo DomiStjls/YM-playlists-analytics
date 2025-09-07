@@ -1,4 +1,4 @@
-from collections import Counter
+from collections import Counter, defaultdict
 import statistics
 from datetime import datetime, timedelta
 from utils import (
@@ -10,6 +10,7 @@ from utils import (
     get_user_like_albums,
     add_known_ids,
     is_available,
+    get_all_user_tracks,
 )
 from tabulate import tabulate
 
@@ -172,7 +173,7 @@ def get_stats_enhanced(user_id=None):
 
             if genres:
                 most_common_genres = Counter(genres).most_common(10)
-                print(f"{bcolors.OKCYAN}ЖАНРОВЫЙ АНАЛИЗ:{bcolors.ENDC}")
+                print(f"{bcolors.OKCYAN}ЖАНРОВЫЙ АНАЛИЗ ЛЮБИМЫХ ПЕСЕН:{bcolors.ENDC}")
                 print(f"├─ Всего уникальных жанров: {len(set(genres))}")
                 print(
                     f"├─ Топ-3 жанра: {', '.join([f'{genre}({count})' for genre, count in most_common_genres[:3]])}"
@@ -183,27 +184,67 @@ def get_stats_enhanced(user_id=None):
 
         # =============== ДОПОЛНИТЕЛЬНЫЕ МЕТРИКИ ===============
 
-        # 3. Коэффициент разнообразия исполнителей                                  пока фигня 
-        # if artists:
-        #     total_artist_tracks = sum(
-        #         artist.get("track_count", 0) for artist in artists
-        #     )
-        #     avg_tracks_per_artist = total_artist_tracks / len(artists) if artists else 0
-        #     print(f"{bcolors.OKCYAN}КОЭФФИЦИЕНТ РАЗНООБРАЗИЯ:{bcolors.ENDC}")
-        #     print(
-        #         f"├─ Среднее количество треков на артиста: {avg_tracks_per_artist:.0f}"
-        #     )
-
-        #     # Находим артистов с наибольшим количеством треков
-        #     top_artists_by_tracks = sorted(
-        #         artists, key=lambda x: x.get("track_count", 0), reverse=True
-        #     )[:5]
-        #     print("├─ Топ-артисты по количеству треков:")
-        #     for i, artist in enumerate(top_artists_by_tracks, 1):
-        #         print(
-        #             f"│   {i}. {artist['artist_name']}: {artist.get('track_count', 0)} треков"
-        #         )
-        #     print()
+        # 3. Аналитика вообще всех песен                                пока фигня 
+        print(f"{bcolors.OKCYAN}ОБЩИЙ АНАЛИЗ ВСЕХ ПЕСЕН{bcolors.ENDC}")
+        tracks = get_all_user_tracks(user_id=user_id)
+        tracks_for_set = [f'{track["title"]} - {track["artists"]}' for track in tracks]
+        print(f"Всего треков во всех плейлистах: {len(set(tracks_for_set))}. Из них повторяются: {len(tracks_for_set) - len(set(tracks_for_set))}")
+        print("=" * 50)
+        
+        # 1. Метрика: Самые популярные треки (по количеству повторений в плейлистах)
+        track_counts = Counter()
+        track_info = {}  # Для хранения информации о треке
+        
+        for track in tracks:
+            track_key = (track['title'], track['artists'])
+            track_counts[track_key] += 1
+            track_info[track_key] = track
+        
+        print("ТОП-10 самых частовстречающихся треков в ваших плейлистах:")
+        for i, (track_key, count) in enumerate(track_counts.most_common(10), 1):
+            title, artists = track_key
+            print(f"{i:2d}. {title} - {artists} ({count} раз)")
+        
+        # 2. Метрика: Анализ по жанрам
+        # genre_counts = Counter(track['genre'] for track in tracks)
+        # print("\nРаспределение по жанрам:")
+        # for genre, count in genre_counts.most_common(10):
+        #     percentage = (count / len(tracks)) * 100
+        #     print(f"   {genre}: {count} треков ({percentage:.1f}%)")
+        
+        # 3. Метрика: Анализ по артистам
+        artist_tracks = defaultdict(list)
+        for track in tracks:
+            # Разбираем строку артистов "Артист1 - ID1, Артист2 - ID2"
+            artists_data = track['artists'].split(', ')
+            for artist_data in artists_data:
+                artist_name = artist_data.split(' - ')[0]  # Берем только имя артиста
+                artist_tracks[artist_name].append(track)
+        
+        print(f"\nТОП-10 самых прослушиваемых артистов по всем плейлистам:")
+        artist_counts = {artist: len(tracks_list) for artist, tracks_list in artist_tracks.items()}
+        for i, (artist, count) in enumerate(sorted(artist_counts.items(), key=lambda x: x[1], reverse=True)[:10], 1):
+            print(f"{i:2d}. {artist}: {count} треков")
+        
+        # 4. Метрика: Статистика по годам
+        year_counts = Counter(track['year'] for track in tracks if track['year'])
+        print(f"\nРаспределение по годам (ТОП-10):")
+        for year, count in year_counts.most_common(10):
+            print(f"   {year}: {count} треков")
+        
+        # 5. Дополнительные статистики
+        durations = [track['duration'] for track in tracks if track['duration']]
+        total_duration_ms = sum(durations)
+        avg_duration_ms = statistics.mean(durations)
+        
+        # Переводим в часы/минуты/секунды
+        total_hours = total_duration_ms // (1000 * 60 * 60)
+        total_minutes = (total_duration_ms % (1000 * 60 * 60)) // (1000 * 60)
+        avg_minutes = avg_duration_ms // (1000 * 60)
+        avg_seconds = (avg_duration_ms % (1000 * 60)) // 1000
+        print(f"   Общая длительность: {total_hours}ч {total_minutes}мин")
+        print(f"   Средняя длительность трека: {avg_minutes:.0f}мин {avg_seconds:.0f}сек")
+        print(f"   Количество артистов: {len(artist_tracks)}")
 
         # 4. Анализ коллабораций
         if favorite_tracks:
@@ -223,8 +264,8 @@ def get_stats_enhanced(user_id=None):
             print(f"└─ Процент коллабораций: {collab_ratio:.1%}\n")
 
         # 5. Анализ музыкальных эпох (по названиям треков)
-        if favorite_tracks:
-            year_analysis = analyze_track_years(favorite_tracks)
+        if tracks:
+            year_analysis = analyze_track_years(tracks)
             if year_analysis:
                 print(f"{bcolors.OKCYAN} АНАЛИЗ МУЗЫКАЛЬНЫХ ЭПОХ:{bcolors.ENDC}")
                 print(f"├─ Средний год музыки: {year_analysis['avg_year']}")
@@ -400,7 +441,7 @@ def get_stats_enhanced(user_id=None):
             f"{bcolors.WARNING}  UnicodeEncodeError: Обнаружены некорректные символы. Смените кодировку консоли.{bcolors.ENDC}"
         )
     except Exception as e:
-        print(f"{bcolors.FAIL} Ошибка при получении статистики: {str(e)}{bcolors.ENDC}")
+        print(f"{bcolors.FAIL} Ошибка при получении статистики: {e}{bcolors.ENDC}")
 
 
 # Дополнительная функция для быстрого обзора

@@ -266,6 +266,34 @@ def get_user_playlists(token=None, user_id=None, use_cache=True):
         return None
 
 
+def get_all_user_tracks(token=None, user_id=None):
+    """
+    Получает все треки пользователя из всех его плейлистов.
+    (треки могут повторяться, если встречаются в нескольких плейлистах)
+
+    Returns:
+        list[dict]: список треков в формате get_tracks_from_playlist
+    """
+    all_tracks = []
+    playlists = get_user_playlists(token=token, user_id=user_id)
+
+    if not playlists:
+        return all_tracks
+
+    for pl in playlists:
+        kind = pl["kind"]
+        tracks = get_tracks_from_playlist(
+            token=token, user_id=user_id, kind=kind, are_favorite=False
+        )
+        all_tracks.extend(tracks)
+    all_tracks.extend(
+        get_tracks_from_playlist(
+            token=token, user_id=user_id, are_favorite=True
+        )
+    )
+    return all_tracks
+
+
 def get_user_like_playlists(token=None, user_id=None, use_cache=True):
     """
     Get list of playlists liked by user with caching.
