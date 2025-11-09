@@ -55,9 +55,9 @@ def get_stats(user_id=None, short=False):
 
 
 def download(file_name, type, user_id=get_user_id_from_token()["id"]):
-    # FavoriteTracks, LikedArtists, LikedAlbums, LikedPlaylists, OwnedPlaylists
-    try:
-        if type == "FavoriteTracks":
+    # FavouriteTracks, LikedArtists, LikedAlbums, LikedPlaylists, OwnedPlaylists
+    try: 
+        if type == "FavouriteTracks":
             data = get_tracks_from_playlist(user_id=user_id, are_favourite=True)
         elif type == "LikedArtists":
             data = get_users_likes_artists(user_id=user_id)
@@ -81,7 +81,7 @@ def download(file_name, type, user_id=get_user_id_from_token()["id"]):
 
 
 def get_fav_tracks(user_id=None):
-    # tracks = get_favorite_tracks(user_id=user_id)
+    # tracks = get_favourite_tracks(user_id=user_id)
     # for track in tracks[:10]:
     #     print(
     #         f"{track['title']} - {', '.join(artist['name'] for artist in track['artists'])} - {track['duration'] / 60000:.2f}min"
@@ -114,7 +114,7 @@ def compare_playlists(user1, user2=get_user_id_from_token()["id"]):
             if i1 in kinds1:
                 break
         all_t1 = get_tracks_from_playlist(
-            user_id=user1, kind=i1, are_favorite=i1 == "0"
+            user_id=user1, kind=i1, are_favourite=i1 == "0"
         )
         print("\nПлейлисты пользователя 2:")
         for p in pl2:
@@ -126,7 +126,7 @@ def compare_playlists(user1, user2=get_user_id_from_token()["id"]):
                 break
         
         all_t2 = get_tracks_from_playlist(
-            user_id=user2, kind=i2, are_favorite=i2 == "0"
+            user_id=user2, kind=i2, are_favourite=i2 == "0"
         )
         
         print_comparison_report(compare_playlists_enhanced(all_t1, all_t2, playlist1_name="Плейлист пользователя 1", playlist2_name="Плейлист пользователя 2"))
@@ -162,9 +162,9 @@ def main():
         "compare": "Compare two users' playlists"
         if is_english
         else "Сравнить плейлисты двух пользователей",
-        "download": "Save to a file `FileName` (.csv and .txt) information of type `Type` (type from the list: FavoriteTracks, LikedArtists, LikedAlbums, LikedPlaylists, OwnedPlaylists) for user `UserId`"
+        "download": "Save to a file `FileName` (.csv and .txt) information of type `Type` (type from the list: FavouriteTracks, LikedArtists, LikedAlbums, LikedPlaylists, OwnedPlaylists) for user `UserId`"
         if is_english
-        else "Сохранить в файл `FileName` (.csv и .txt) информацию типа `Type`(тип из списка: FavoriteTracks, LikedArtists, LikedAlbums, LikedPlaylists, OwnedPlaylists) пользователя `UserId`",
+        else "Сохранить в файл `FileName` (.csv и .txt) информацию типа `Type`(тип из списка: FavouriteTracks, LikedArtists, LikedAlbums, LikedPlaylists, OwnedPlaylists) пользователя `UserId`",
         "find": "Find the owner of a liked playlist"
         if is_english
         else "Найти владельца плейлиста из лайков",
@@ -210,14 +210,14 @@ def main():
             print("Аргумент FileName должен иметь расширение csv или txt.")
             sys.exit(1)
         elif a[1] not in [
-            "FavoriteTracks",
+            "FavouriteTracks",
             "LikedArtists",
             "LikedAlbums",
             "LikedPlaylists",
             "OwnedPlaylists",
         ]:
             print(
-                "Аргумент Type должен быть одним из: FavoriteTracks, LikedArtists, LikedAlbums, LikedPlaylists, OwnedPlaylists."
+                "Аргумент Type должен быть одним из: FavouriteTracks, LikedArtists, LikedAlbums, LikedPlaylists, OwnedPlaylists."
             )
             sys.exit(1)
         else:

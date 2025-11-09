@@ -1,4 +1,4 @@
-# getting the user's favorite tracks
+# getting the user's favourite tracks
 from yandex_music import Client
 import os
 from dotenv import load_dotenv
@@ -161,7 +161,7 @@ def add_known_ids(known_ids):
 
 
 def get_tracks_from_playlist(
-    token=None, user_id=None, are_favorite=False, kind=None, use_cache=True
+    token=None, user_id=None, are_favourite=False, kind=None, use_cache=True
 ):
     """Получает треки из плейлиста с кэшированием."""
     if not token:
@@ -173,7 +173,7 @@ def get_tracks_from_playlist(
         cache_key = get_cache_key(
             "get_tracks_from_playlist",
             user_id=user_id,
-            are_favorite=are_favorite,
+            are_favourite=are_favourite,
             kind=kind,
             token_hash=hashlib.md5(token.encode()).hexdigest(),
         )
@@ -185,7 +185,7 @@ def get_tracks_from_playlist(
 
     try:
         client = Client(token=token).init()
-        if are_favorite:
+        if are_favourite:
             playlist = client.users_likes_tracks(user_id=user_id).fetch_tracks()
         else:
             playlist = [
@@ -283,12 +283,12 @@ def get_all_user_tracks(token=None, user_id=None):
     for pl in playlists:
         kind = pl["kind"]
         tracks = get_tracks_from_playlist(
-            token=token, user_id=user_id, kind=kind, are_favorite=False
+            token=token, user_id=user_id, kind=kind, are_favourite=False
         )
         all_tracks.extend(tracks)
     all_tracks.extend(
         get_tracks_from_playlist(
-            token=token, user_id=user_id, are_favorite=True
+            token=token, user_id=user_id, are_favourite=True
         )
     )
     return all_tracks

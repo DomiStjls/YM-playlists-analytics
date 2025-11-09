@@ -90,7 +90,7 @@ def get_stats_enhanced(user_id=None):
     liked_playlists = get_user_like_playlists(user_id=user_id)
     own_playlists = get_user_playlists(user_id=user_id)
     artists = get_users_likes_artists(user_id=user_id)
-    favorite_tracks = get_tracks_from_playlist(user_id=user_id, are_favorite=True)
+    favorite_tracks = get_tracks_from_playlist(user_id=user_id, are_favourite=True)
 
     # Обрабатываем known_ids
     known_ids = [
@@ -202,8 +202,8 @@ def get_stats_enhanced(user_id=None):
         
         print("ТОП-10 самых частовстречающихся треков в ваших плейлистах:")
         for i, (track_key, count) in enumerate(track_counts.most_common(10), 1):
-            title, artists = track_key
-            print(f"{i:2d}. {title} - {artists} ({count} раз)")
+            title, artists_m = track_key
+            print(f"{i:2d}. {title} - {artists_m} ({count} раз)")
         
         # 2. Метрика: Анализ по жанрам
         # genre_counts = Counter(track['genre'] for track in tracks)
@@ -407,11 +407,12 @@ def get_stats_enhanced(user_id=None):
         # Исполнители
         if artists:
             print("\nПонравившиеся исполнители:")
+
             artist_table = [
                 [
-                    a["artist_name"][:30] + "..."
-                    if len(a["artist_name"]) > 30
-                    else a["artist_name"],
+                    a['artist_name'][:30] + "..."
+                    if len(a['artist_name']) > 30
+                    else a['artist_name'],
                     a["track_count"],
                     a["artist_genres"][:40] + "..."
                     if len(a["artist_genres"]) > 40
@@ -454,7 +455,7 @@ def get_quick_stats_summary(user_id=None):
     liked_playlists = get_user_like_playlists(user_id=user_id)
     own_playlists = get_user_playlists(user_id=user_id)
     artists = get_users_likes_artists(user_id=user_id)
-    favorite_tracks = get_tracks_from_playlist(user_id=user_id, are_favorite=True)
+    favorite_tracks = get_tracks_from_playlist(user_id=user_id, are_favourite=True)
 
     # Базовые метрики
     total_content = (
