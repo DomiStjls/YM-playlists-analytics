@@ -1,5 +1,26 @@
 # YM-analytics
 
+Инструменты для получения статистики Яндекс Музыки, сравнения плейлистов и сохранения данных в CSV или TXT.
+
+## Запуск
+
+```bash
+git clone https://github.com/DomiStjls/YM-playlists-analytics.git
+cd YM-playlists-analytics
+pip install -r requirements.txt
+python app.py --help
+```
+
+Для работы нужен токен Яндекс Музыки в переменной окружения `TOKEN`. Справка о параметрах доступна через `--help`; среди них `--stats`, `--compare`, `--download` и `--find`. При запуске приложение обращается к аккаунту по токену.
+
+## Структура
+
+- `app.py` — интерфейс командной строки.
+- `utils.py` — получение и сохранение данных.
+- `userStat.py` — статистика пользователя.
+- `compare.py` — сравнение плейлистов.
+
+
 # Описание работы файла utils.py
 
 
